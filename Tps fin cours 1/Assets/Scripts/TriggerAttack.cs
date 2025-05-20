@@ -7,7 +7,7 @@ public class TriggerAttack : MonoBehaviour
     {
         if (other.CompareTag("Enemy"))
         {
-             
+             Destroy(other.gameObject);
         }
     }
 }

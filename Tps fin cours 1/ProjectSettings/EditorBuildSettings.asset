@@ -6,6 +6,19 @@ EditorBuildSettings:
   serializedVersion: 2
   m_Scenes:
   - enabled: 1
-    path: Assets/Scenes/The_Viking_Village.unity
-    guid: 00000000000000000000000000000000
+    path: Assets/Scenes/Menu.unity
+    guid: 89efc790130d2554f9d77bee219109ed
+  - enabled: 1
+    path: Assets/Scenes/lEVEL1.unity
+    guid: 1cae3190faa628e4e93e47ab738f1a3a
+  - enabled: 1
+    path: Assets/Scenes/lEVEL2.unity
+    guid: bc7603e007535f24798a664b6b9f8208
+  - enabled: 1
+    path: Assets/Scenes/lEVEL3.unity
+    guid: b4f7115d4c73f284186d4f50c2ff01e3
+  - enabled: 1
+    path: Assets/Scenes/End.unity
+    guid: d4c481f55746af448bd96b5ecf7afd7b
   m_configObjects: {}
+  m_UseUCBPForAssetBundles: 0

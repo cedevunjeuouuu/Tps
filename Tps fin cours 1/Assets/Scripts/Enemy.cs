@@ -1,4 +1,3 @@
-using System;
 using System.Collections;
 using UnityEngine;
 using UnityEngine.AI;
@@ -9,7 +8,8 @@ public class Enemy : MonoBehaviour
     [SerializeField] private Transform[] patrolPoints;
     [SerializeField] private float visionAngle = 90f;
     [SerializeField] private LayerMask obstacleMask;
-    [SerializeField] private float waitTime;
+    [SerializeField] private float waitTime = 1f;
+    [SerializeField] private float lostPlayerDelay = 2f;
 
     private int currentPatrolIndex = 0;
     private NavMeshAgent agent;
@@ -17,6 +17,8 @@ public class Enemy : MonoBehaviour
     private bool isChasing = false;
     private bool playerInTrigger = false;
     private bool canMove = true;
+    private Coroutine visionCheckCoroutine;
+    private Coroutine lostPlayerCoroutine;
 
     void Start()
     {
@@ -42,6 +44,7 @@ public class Enemy : MonoBehaviour
     {
         if (patrolPoints.Length == 0)
             return;
+
         canMove = false;
         StartCoroutine(CanMoveCoroutine());
     }
@@ -56,17 +59,38 @@ public class Enemy : MonoBehaviour
 
     private void OnTriggerEnter(Collider other)
     {
-        if (other.CompareTag("Player"))
+        if (other.CompareTag("Player") && visionCheckCoroutine == null)
         {
             playerInTrigger = true;
-            StartCoroutine(PlayerInTrigger());
+            visionCheckCoroutine = StartCoroutine(PlayerInTrigger());
         }
-        
+    }
+
+    private void OnTriggerExit(Collider other)
+    {
+        if (other.CompareTag("Player"))
+        {
+            playerInTrigger = false;
+            if (visionCheckCoroutine != null)
+            {
+                StopCoroutine(visionCheckCoroutine);
+                visionCheckCoroutine = null;
+            }
+
+            if (lostPlayerCoroutine != null)
+            {
+                StopCoroutine(lostPlayerCoroutine);
+                lostPlayerCoroutine = null;
+            }
+
+            isChasing = false;
+            GoToNextPatrolPoint();
+        }
     }
 
     IEnumerator PlayerInTrigger()
     {
-        while (playerInTrigger)
+        while (playerInTrigger && player != null)
         {
             Vector3 dirToPlayer = (player.position - transform.position).normalized;
             float angle = Vector3.Angle(transform.forward, dirToPlayer);
@@ -74,28 +98,54 @@ public class Enemy : MonoBehaviour
             if (angle < visionAngle / 2f)
             {
                 float distanceToPlayer = Vector3.Distance(transform.position, player.position);
-                
-                if (!Physics.Raycast(transform.position + Vector3.up, dirToPlayer, distanceToPlayer, obstacleMask))
+                Vector3 origin = transform.position + Vector3.up * 1.5f;
+
+                if (!Physics.Raycast(origin, dirToPlayer, distanceToPlayer, obstacleMask))
                 {
-                    isChasing = true;
+                    if (!isChasing)
+                        isChasing = true;
+
+                    if (lostPlayerCoroutine != null)
+                    {
+                        StopCoroutine(lostPlayerCoroutine);
+                        lostPlayerCoroutine = null;
+                    }
+                }
+                else
+                {
+                    TryLosePlayer();
                 }
             }
+            else
+            {
+                TryLosePlayer();
+            }
+
             yield return null;
         }
     }
 
-    void OnTriggerExit(Collider other)
+    void TryLosePlayer()
     {
-        if (other.CompareTag("Player"))
+        if (isChasing && lostPlayerCoroutine == null)
         {
-            playerInTrigger = false;
-            isChasing = false;
-            GoToNextPatrolPoint();
+            lostPlayerCoroutine = StartCoroutine(LosePlayerAfterDelay());
         }
+    }
+
+    IEnumerator LosePlayerAfterDelay()
+    {
+        yield return new WaitForSeconds(lostPlayerDelay);
+        isChasing = false;
+        GoToNextPatrolPoint();
+        lostPlayerCoroutine = null;
     }
 
     private void OnCollisionEnter(Collision other)
     {
-        SceneManager.LoadScene(SceneManager.GetActiveScene().name);
+        if (other.gameObject.CompareTag("Player"))
+        {
+            SceneManager.LoadScene(SceneManager.GetActiveScene().name);
+        }
     }
 }
